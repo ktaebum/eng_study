@@ -1,0 +1,4 @@
+*.docx
+*.csv
+.env
+.idea
