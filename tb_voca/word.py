@@ -3,7 +3,7 @@ class Word(object):
         self.word = word
         self.e_mean = e_mean
         self.k_mean = k_mean
-        self.sentence = sentence.replace(word, '_____')
+        self.sentence = sentence
         self.index = ''
 
     def __str__(self):
