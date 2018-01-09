@@ -7,6 +7,6 @@
     - Please refer to each feature's README
     
 - Pre-installation
-    - Run pip install -r requirements.txt 
+    - Run `$ pip install -r requirements.txt ` 
         - sudo -H flag could be needed depends on your python environment
     - Recommend to use virtualenv
