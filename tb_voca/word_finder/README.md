@@ -1,6 +1,6 @@
 # Word Finder
 
-#####Crawling word's english meaning, korean meaning, example
+##### Crawling word's english meaning, korean meaning, example
 
 `Version = 1.0`
 
