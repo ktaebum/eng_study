@@ -2,8 +2,7 @@
 
 from bs4 import BeautifulSoup
 from ..word import Word
-from os import listdir
-from os.path import isfile, join
+from ..helper import print_file_list
 import requests
 import re
 import csv
@@ -17,21 +16,17 @@ class WordFinder(object):
         """
         :param path: path for word files (upper directory)
         """
-        word_files = [file for file in listdir(path) if isfile(join(path, file))]
         print('Select Target File Number to Generate Test')
-        for i in range(len(word_files)):
-            print('  ㄴ', (i + 1), word_files[i])
-
-        try:
-            number = int(input('Number: ')) - 1
-        except FileNotFoundError:
-            print('Error: Non Existing File!')
-            return
+        word_files = print_file_list(path)
+        number = int(input('Number: ')) - 1
+        if number >= len(word_files):
+            raise FileNotFoundError('Non-Existing File!')
 
         self.filename = word_files[number]
+
         self.word_list = []
 
-        file = open('./find_targets/{:s}'.format(self.filename), 'r', encoding='utf-8')
+        file = open('{:s}'.format(self.filename), 'r', encoding='utf-8')
         reader = csv.reader(file)
         for line in reader:
             self.word_list.append(Word(word=line[0]))
@@ -40,8 +35,9 @@ class WordFinder(object):
         return
 
     def find(self):
-        new_file_name = self.filename.split('.csv')[0] + '_result.csv'
-        file = open('./find_targets/{:s}'.format(new_file_name), 'w', encoding='utf-8', newline='')
+        # find target words in csv file and save it into new file
+        new_file_name = './find_results/' + (self.filename.split('/')[-1]).split('.csv')[0] + '_result.csv'
+        file = open('{:s}'.format(new_file_name), 'w', encoding='utf-8', newline='')
         wr = csv.writer(file)
         for word in self.word_list:
             eng_mean, kor_mean, example = WordFinder.find_single_word(word.word)
@@ -66,7 +62,7 @@ class WordFinder(object):
         # first, find english meaning and following example
         req = requests.get(WordFinder.eng_url + word)
         soup = BeautifulSoup(req.text, 'html.parser')
-        print('Finding \'%s\'...' % (word))
+        print('Finding \'%s\'...' % word)
 
         eng_results = soup.find('ul', {'class': 'semb'}).find_all('div', {'class': 'trg'})
 
@@ -78,7 +74,7 @@ class WordFinder(object):
             eng_meanings = ['']
 
         try:
-            example = soup.find('div', {'class': 'ex'}).find('em')
+            example = WordFinder.tag_parser(str(soup.find('div', {'class': 'ex'}).find('em')))
         except AttributeError:
             example = ''
 
