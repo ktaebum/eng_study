@@ -5,10 +5,12 @@ import random
 
 from docx import Document
 from docx.shared import Pt
-from os import listdir
+from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
+from docx.shared import Inches
+from datetime import datetime
 
-from os.path import isfile, join
 from ..word import Word
+from ..helper import print_file_list
 
 
 class TestGenerator(object):
@@ -16,11 +18,13 @@ class TestGenerator(object):
         """
         :param path:  path for word files (upper directory)
         """
+        word_files = print_file_list(path)
+        """
         word_files = [file for file in listdir(path) if isfile(join(path, file))]
         print('Select Target File Number to Generate Test')
         for i in range(len(word_files)):
             print('  ㄴ', (i + 1), word_files[i])
-
+        """
         try:
             number = int(input('Number: ')) - 1
         except FileNotFoundError:
@@ -53,6 +57,14 @@ class TestGenerator(object):
         self.answer_doc = Document()
         self.test_doc = Document()
 
+        answer_sections = self.answer_doc.sections
+        test_sections = self.test_doc.sections
+        for answer_section, test_section in zip(answer_sections, test_sections):
+            answer_section.top_margin = Inches(0.5)
+            answer_section.bottom_margin = Inches(0.5)
+            test_section.top_margin = Inches(0.5)
+            test_section.bottom_margin = Inches(0.5)
+
         # Basic Font Setting
         answer_font = self.answer_doc.styles['Normal'].font
         test_font = self.test_doc.styles['Normal'].font
@@ -60,13 +72,24 @@ class TestGenerator(object):
         answer_font.size = Pt(10)
         test_font.name = 'Times New Roman'
         test_font.size = Pt(10)
+        test_day = datetime.now()
 
-        self.answer_doc.add_heading('Answers', level=1)
-        self.test_doc.add_heading('Tests', level=1)
+        answer_header = self.answer_doc.add_paragraph()
+        answer_header.style = self.answer_doc.styles['Heading 2']
+        answer_header.add_run('Answer')
+        answer_header.add_run(
+            text='\t\t\t\t\t\t\t\t\t%d-%d-%d' % (test_day.year, test_day.month, test_day.day + 1))
+
+        test_header = self.test_doc.add_paragraph()
+        test_header.style = self.test_doc.styles['Heading 2']
+        test_header.add_run('Test')
+        test_header.add_run(
+            text='\t\t\t\t\t\t\t\t\t\t%d-%d-%d' % (test_day.year, test_day.month, test_day.day + 1)
+        ).alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
 
         self.make_section1(section1)
         self.make_section2(section2)
-        self.make_section3(section3)
+        # self.make_section3(section3)
 
         self.answer_doc.save('answer.docx')
         self.test_doc.save('test.docx')
@@ -77,7 +100,16 @@ class TestGenerator(object):
         answer = self.answer_doc.add_paragraph()
         test = self.test_doc.add_paragraph()
         answer.add_run('Answer for section 1').bold = True
-        test.add_run('Section 1: Write meaning of given words').bold = True
+        test.add_run('Section 1: Write ').bold = True
+        meaning = test.add_run('meaning')
+        meaning.bold = True
+        meaning.italic = True
+        test.add_run(' and at least one ').bold = True
+        synonym = test.add_run('synonym')
+        synonym.bold = True
+        synonym.italic = True
+        test.add_run(' of given words').bold = True
+        # test.add_run('Section 1: Write meaning and at least one synonym of given words').bold = True
 
         for word in section1:
             self.answer_doc.add_paragraph('%d) %s / %s' % (self.question_number, word.e_mean, word.k_mean))
@@ -92,17 +124,19 @@ class TestGenerator(object):
         answer.add_run('Answer for section 2').bold = True
         test.add_run('Section 2: Match word for given meaning').bold = True
 
+        self.test_doc.add_paragraph('============================================================================')
         word_index = ord('a')
         p = None
         for i, word in enumerate(section2):
             word.set_index(chr(word_index))
-            if i % 4 == 0:
+            if i % 5 == 0:
                 p = self.test_doc.add_paragraph()
             p.add_run('(%s) %s \t' % (word.index, word))
             word_index += 1
 
         random.shuffle(section2)
 
+        self.test_doc.add_paragraph('============================================================================')
         for word in section2:
             self.test_doc.add_paragraph('%d) %s / %s' % (self.question_number, word.e_mean, word.k_mean))
             self.answer_doc.add_paragraph('%d) (%s)-%s' % (self.question_number, word.index, word.word))
@@ -115,16 +149,18 @@ class TestGenerator(object):
         test = self.test_doc.add_paragraph()
         answer.add_run('Answer for section 3').bold = True
         test.add_run('Section 3: Match word for given sentence').bold = True
+        test.add_run('=============================================================')
 
         word_index = ord('a')
         p = None
         for i, word in enumerate(section3):
             word.set_index(chr(word_index))
-            if i % 4 == 0:
+            if i % 6 == 0:
                 p = self.test_doc.add_paragraph()
             p.add_run('(%s) %s \t' % (word.index, word))
             word_index += 1
 
+        test.add_run('=============================================================')
         random.shuffle(section3)
         for word in section3:
             self.test_doc.add_paragraph('%d) %s' % (self.question_number, word.sentence))
@@ -141,7 +177,7 @@ class TestGenerator(object):
         :return: word list
         """
 
-        file = open('./words/{:s}'.format(filename), 'r', encoding='utf-8')
+        file = open('{:s}'.format(filename), 'r', encoding='utf-8')
 
         reader = csv.reader(file)
         words = []
