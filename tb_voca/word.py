@@ -5,9 +5,14 @@ class Word(object):
         self.k_mean = k_mean
         self.sentence = sentence
         self.index = ''
+        self.choice_appear = 0
 
     def __str__(self):
         return self.word
 
     def set_index(self, index):
         self.index = index
+
+    def remove_word_from_sentence(self):
+        self.sentence = self.sentence.replace(self.word, '______')
+        return self
