@@ -7,6 +7,19 @@ import re
 import csv
 
 
+def tag_parser(string):
+    """
+    remove <something> </something> in html tag
+    :param string: input tag string
+    :return: just content of the tag
+    """
+    searcher = re.search('>(.*)<', string)
+    if searcher:
+        return searcher.group(1)
+    else:
+        return ''
+
+
 class WordFinder(object):
     eng_url = 'https://en.oxforddictionaries.com/definition/'  # use Oxford Dictionary
     kor_url = 'http://alldic.daum.net/search.do?q='  # use Daum dictionary for korean meaning
@@ -66,7 +79,7 @@ class WordFinder(object):
         req = requests.get(WordFinder.eng_url + word)
         soup = BeautifulSoup(req.text, 'html.parser')
         try:
-            example = WordFinder.tag_parser(str(soup.find('div', {'class': 'ex'}).find('em')))
+            example = tag_parser(str(soup.find('div', {'class': 'ex'}).find('em')))
         except AttributeError:
             example = ''
         return example
@@ -82,7 +95,7 @@ class WordFinder(object):
         eng_results = soup.find('ul', {'class': 'semb'}).find_all('div', {'class': 'trg'})
 
         try:
-            eng_meanings = list(map(lambda list_element: WordFinder.tag_parser(
+            eng_meanings = list(map(lambda list_element: tag_parser(
                 str(list_element.find('span', {'class': 'ind'}))), eng_results))
             eng_meanings = list(filter(lambda mean: len(mean) > 0, eng_meanings))
         except AttributeError:
@@ -102,7 +115,7 @@ class WordFinder(object):
 
         try:
             kor_meanings = soup.find('ul', {'class': 'list_search'}).find_all('li')
-            kor_meanings = list(map(lambda list_element: WordFinder.tag_parser(
+            kor_meanings = list(map(lambda list_element: tag_parser(
                 str(list_element.find('span', {'class': 'txt_search'}).find('daum:word'))), kor_meanings))
         except AttributeError:
             kor_meanings = ['']
@@ -117,16 +130,3 @@ class WordFinder(object):
         return (english_meaning as list, korean_meaning as list, example as string)
         """
         return WordFinder.find_eng_meaning(word), WordFinder.find_kor_meaning(word), WordFinder.find_example(word)
-
-    @staticmethod
-    def tag_parser(string):
-        """
-        remove <something> </something> in html tag
-        :param string: input tag string
-        :return: just content of the tag
-        """
-        searcher = re.search('>(.*)<', string)
-        if searcher:
-            return searcher.group(1)
-        else:
-            return ''
