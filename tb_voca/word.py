@@ -18,6 +18,9 @@ class Word(object):
                self.k_mean == other.k_mean and \
                self.sentence == other.sentence
 
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
     def __copy__(self):
         word = Word(word=self.word,
                     e_mean=self.e_mean,

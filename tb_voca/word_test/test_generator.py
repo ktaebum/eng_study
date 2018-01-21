@@ -9,6 +9,7 @@ from docx.shared import Inches
 from datetime import datetime
 
 from ..helper import print_file_list, read_csv
+from ..word import Word
 
 
 class TestGenerator(object):
@@ -39,7 +40,7 @@ class TestGenerator(object):
         self.section2 = section2
         self.section3 = section3
 
-    def generate_tests(self):
+    def generate_tests(self, verbose=True):
         """
         section1:  Write meaning for given word
         section2:  Match word for given meaning table set
@@ -66,14 +67,15 @@ class TestGenerator(object):
 
         assert section1_nums + section2_nums + section3_nums == num_questions, 'Number of questions does not match!'
 
-        print('\n\n')
-        print('===== Test Info =====')
-        print('Total Questions: %d' % num_questions)
-        print('Section1: %d' % section1_nums)
-        print('Section2: %d' % section2_nums)
-        print('Section3: %d' % section3_nums)
-        print('=====================')
-        print('\n\n')
+        if verbose:
+            print('\n\n')
+            print('===== Test Info =====')
+            print('Total Questions: %d' % num_questions)
+            print('Section1: %d' % section1_nums)
+            print('Section2: %d' % section2_nums)
+            print('Section3: %d' % section3_nums)
+            print('=====================')
+            print('\n\n')
 
         (section1, section2, section3) = self.split_sections(section1_nums, section2_nums, section3_nums)
 
@@ -93,13 +95,33 @@ class TestGenerator(object):
 
         self.set_basic_document_setting(font_dict=font_dict,
                                         margin_dict=margin_dict)
+        if verbose:
+            print('Making section1. . . ')
 
         self.make_section1(section1)
+
+        if verbose:
+            print('Making section1 finished')
+            print()
+            print('Making section2. . .')
         self.make_section2(section2)
+
+        if verbose:
+            print('Making section2 finished')
+            print()
+            print('Making section3. . .')
         self.make_section3(section3)
+
+        if verbose:
+            print('Making section3 finished')
+            print()
+            print('Now save into word file. . .')
 
         self.answer_doc.save('answer.docx')
         self.test_doc.save('test.docx')
+
+        if verbose:
+            print('Saving finished!')
 
         return
 
@@ -178,7 +200,7 @@ class TestGenerator(object):
         word_index = ord('a')
         p = None
         for i, word in enumerate(section2):
-            word.set_index(chr(word_index))
+            word.index = chr(word_index)
             if i % 5 == 0:
                 p = self.test_doc.add_paragraph()
             p.add_run('(%s) %s \t' % (word.index, word))
@@ -212,21 +234,17 @@ class TestGenerator(object):
             self.test_doc.add_paragraph('%d) %s' % (self.question_number, word.sentence))
             answer_choice = random.choice(choices)
             choice = self.test_doc.add_paragraph('')
-            chosen = [word]
+            others = random.sample(list(filter(lambda w: w.choice_appear < 4 and w != word, section3)),
+                                   k=len(choices) - 1)
             for c in choices:
                 if c == answer_choice:
                     choice.add_run('(%s) %s\t' % (c, word.word))
                     self.answer_doc.add_paragraph('%d) (%s)-%s' % (self.question_number, c, word.word))
                     word.choice_appear += 1
                 else:
-                    candidate = list(
-                        filter(lambda w: w.choice_appear < 4 and not TestGenerator._find(w, chosen), section3))
-                    other = random.choice(candidate)
-                    # other = random.choice(
-                    #    list(filter(lambda w: not TestGenerator._find(w, chosen) and w.choice_appear < 4, section3)))
+                    other = others.pop()
                     choice.add_run('(%s) %s\t' % (c, other.word))
                     other.choice_appear += 1
-                    chosen.append(other)
             self.question_number += 1
 
         return
@@ -266,11 +284,3 @@ class TestGenerator(object):
         section1 = word_list[:section1_nums]
         section2 = word_list[section1_nums:section1_nums + section2_nums]
         return section1, section2, section3
-
-    @staticmethod
-    def _find(word, word_list):
-        for w in word_list:
-            if word == w:
-                return True
-
-        return False
