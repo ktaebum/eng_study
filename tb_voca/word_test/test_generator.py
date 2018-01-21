@@ -8,8 +8,7 @@ from docx.shared import Pt
 from docx.shared import Inches
 from datetime import datetime
 
-from ..helper import print_file_list, read_csv
-from ..word import Word
+from ..word_io import print_file_list, read_csv
 
 
 class TestGenerator(object):

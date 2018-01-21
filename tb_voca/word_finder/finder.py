@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from bs4 import BeautifulSoup
-from ..helper import print_file_list, read_csv
+from ..word_io import print_file_list, read_csv
 import requests
 import re
 import csv
