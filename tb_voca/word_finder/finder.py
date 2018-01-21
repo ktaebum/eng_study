@@ -29,9 +29,9 @@ class WordFinder(object):
         :param path: path for word files (upper directory)
         """
         if not all_files:
-            print('Select Target File Number to Generate Test')
-            number = int(input('Number: ')) - 1
+            print('Select Target File Number to Find')
             word_files = print_file_list(path, verbose=True)
+            number = int(input('Number: ')) - 1
             if number >= len(word_files):
                 raise FileNotFoundError('Non-Existing File!')
 
