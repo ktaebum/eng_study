@@ -1,16 +1,14 @@
 # -*- coding: utf-8 -*-
 
-import csv
 import random
+import warnings
 
 from docx import Document
 from docx.shared import Pt
-from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from docx.shared import Inches
 from datetime import datetime
 
-from ..word import Word
-from ..helper import print_file_list
+from ..helper import print_file_list, read_csv
 
 
 class TestGenerator(object):
@@ -18,18 +16,21 @@ class TestGenerator(object):
         """
         :param path: file path
         :param section2: enable section2
+                        Section2 is matching word for given meaning
         :param section3: enable section3
+                        Section3 is multiple choice question for given example
         """
         word_files = print_file_list(path)
         self.word_list = []
         number = input('File Numbers: ')
-        number = list(map(lambda n: int(n), number.split(' ')))
+        number = list(map(lambda nu: int(nu), number.split(' ')))
         for n in number:
             try:
                 filename = word_files[n - 1]
-                self.word_list += self.read_words(filename)
+                self.word_list += read_csv(filename)
             except IndexError:
                 print('Error: Non Existing File Number Included')
+
         random.shuffle(self.word_list)
 
         self.answer_doc = None
@@ -66,65 +67,57 @@ class TestGenerator(object):
         assert section1_nums + section2_nums + section3_nums == num_questions, 'Number of questions does not match!'
 
         print('\n\n')
-        print('Test Info')
+        print('===== Test Info =====')
         print('Total Questions: %d' % num_questions)
         print('Section1: %d' % section1_nums)
         print('Section2: %d' % section2_nums)
         print('Section3: %d' % section3_nums)
+        print('=====================')
         print('\n\n')
 
         word_list = self.word_list
         if self.section3:
-            filtered_section3 = list(filter(lambda word: word.sentence != '', word_list))
+            filtered_section3 = list(filter(lambda w: w.sentence != '', word_list))
             try:
                 section3 = random.sample(filtered_section3,
                                          k=section3_nums)
             except ValueError:
+                # Catch when section3_nums is greater than length of filtered_section3
+                warnings.warn(
+                    'There are only %d words which have example! Make section 3 with these %d words, not %d words'
+                    % (len(filtered_section3), section3_nums, len(filtered_section3)),
+                    RuntimeWarning
+                )
                 section3 = filtered_section3
                 section1_nums += section3_nums - len(section3)
-            print(len(word_list))
             for word in section3:
+                # Remove section3 words from original word list
                 word_list = list(filter(lambda w: not w.equal(word), word_list))
 
-            print(len(word_list))
-            section3 = list(map(lambda word: word.remove_word_from_sentence(), section3))
+            # Replace word to ______
+            section3 = list(map(lambda w: w.remove_word_from_sentence(), section3))
         else:
             section3 = []
+
         section1 = word_list[:section1_nums]
         section2 = word_list[section1_nums:section1_nums + section2_nums]
 
         self.answer_doc = Document()
         self.test_doc = Document()
 
-        answer_sections = self.answer_doc.sections
-        test_sections = self.test_doc.sections
-        for answer_section, test_section in zip(answer_sections, test_sections):
-            answer_section.top_margin = Inches(0.5)
-            answer_section.bottom_margin = Inches(0.5)
-            test_section.top_margin = Inches(0.5)
-            test_section.bottom_margin = Inches(0.5)
+        font_dict = {
+            'font': 'Times New Roman',
+            'answer_doc_font_size': Pt(9),
+            'test_doc_font_size': Pt(10)
+        }
 
-        # Basic Font Setting
-        answer_font = self.answer_doc.styles['Normal'].font
-        test_font = self.test_doc.styles['Normal'].font
-        answer_font.name = 'Times New Roman'
-        answer_font.size = Pt(9)
-        test_font.name = 'Times New Roman'
-        test_font.size = Pt(10)
-        test_day = datetime.now()
+        margin_dict = {
+            'top': Inches(0.5),
+            'bottom': Inches(0.5)
+        }
 
-        answer_header = self.answer_doc.add_paragraph()
-        answer_header.style = self.answer_doc.styles['Heading 2']
-        answer_header.add_run('Answer')
-        answer_header.add_run(
-            text='\t\t\t\t\t\t\t\t\t%d-%d-%d' % (test_day.year, test_day.month, test_day.day + 1))
-
-        test_header = self.test_doc.add_paragraph()
-        test_header.style = self.test_doc.styles['Heading 2']
-        test_header.add_run('Test')
-        test_header.add_run(
-            text='\t\t\t\t\t\t\t\t\t\t%d-%d-%d' % (test_day.year, test_day.month, test_day.day + 1)
-        ).alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
+        self.set_basic_document(font_dict=font_dict,
+                                margin_dict=margin_dict)
 
         self.make_section1(section1)
         self.make_section2(section2)
@@ -135,7 +128,47 @@ class TestGenerator(object):
 
         return
 
+    def set_basic_document(self, font_dict, margin_dict):
+        font = font_dict.setdefault('font', 'Times New Roman')
+        answer_doc_font_size = font_dict.setdefault('answer_doc_font_size', 9)
+        test_doc_font_size = font_dict.setdefault('test_doc_font_size', 10)
+
+        top_margin = margin_dict.setdefault('top', Inches(0.5))
+        bottom_margin = margin_dict.setdefault('bottom', Inches(0.5))
+
+        answer_sections = self.answer_doc.sections
+        test_sections = self.test_doc.sections
+        for answer_section, test_section in zip(answer_sections, test_sections):
+            answer_section.top_margin = top_margin
+            answer_section.bottom_margin = bottom_margin
+            test_section.top_margin = top_margin
+            test_section.bottom_margin = bottom_margin
+
+        # Basic Font Setting
+        answer_font = self.answer_doc.styles['Normal'].font
+        test_font = self.test_doc.styles['Normal'].font
+        answer_font.name = font
+        answer_font.size = answer_doc_font_size
+        test_font.name = font
+        test_font.size = test_doc_font_size
+
+        test_day = datetime.now()
+        answer_header = self.answer_doc.add_paragraph()
+        answer_header.style = self.answer_doc.styles['Heading 2']
+        answer_header.add_run('Answer')
+        answer_header.add_run(
+            text='\t\t\t\t\t\t\t\t\t%d-%d-%d' % (test_day.year, test_day.month, test_day.day + 1))
+
+        test_header = self.test_doc.add_paragraph()
+        test_header.style = self.test_doc.styles['Heading 2']
+        test_header.add_run('Test')
+        test_header.add_run(
+            text='\t\t\t\t\t\t\t\t\t\t%d-%d-%d' % (test_day.year, test_day.month, test_day.day + 1))
+
     def make_section1(self, section1):
+        if len(section1) == 0:
+            return
+        
         answer = self.answer_doc.add_paragraph()
         test = self.test_doc.add_paragraph()
         answer.add_run('Answer for section 1').bold = True
@@ -204,7 +237,6 @@ class TestGenerator(object):
             self.test_doc.add_paragraph('%d) %s' % (self.question_number, word.sentence))
             answer_choice = random.choice(choices)
             choice = self.test_doc.add_paragraph('')
-            others = random.sample(list(filter(lambda w: not w.equal(word), section3)), k=3)
             chosen = [word]
             print()
             for c in choices:
@@ -217,29 +249,17 @@ class TestGenerator(object):
                     # other = random.choice(section3)
                     # while other.choice_appear >= 4 or other.equal(word):
                     #    other = random.choice(section3)
-                    candidate = list(filter(lambda w: TestGenerator._filter(w, chosen), section3))
-
+                    candidate = list(
+                        filter(lambda w: w.choices_appear < 4 and not TestGenerator._find(word, chosen), section3))
                     other = random.choice(candidate)
-
                     # other = random.choice(
                     #    list(filter(lambda w: not TestGenerator._find(w, chosen) and w.choice_appear < 4, section3)))
                     choice.add_run('(%s) %s\t' % (c, other.word))
                     other.choice_appear += 1
                     chosen.append(other)
-            print('word=', word)
-            for cc in chosen:
-                print(cc.word, ', ', end='')
-            print()
-            for w in section3:
-                print(w.word, w.choice_appear, ', ', end='')
-            print()
             self.question_number += 1
 
         return
-
-    @staticmethod
-    def _filter(word, chosen):
-        return word.choice_appear < 4 and not TestGenerator._find(word, chosen)
 
     @staticmethod
     def _find(word, word_list):
@@ -248,24 +268,3 @@ class TestGenerator(object):
                 return True
 
         return False
-
-    @staticmethod
-    def read_words(filename):
-        """
-        :param filename:  target file name (include related path)
-                            target csv file must follow word, e_mean, k_mean, sentence order!
-        :return: word list
-        """
-
-        file = open('{:s}'.format(filename), 'r', encoding='utf-8')
-
-        reader = csv.reader(file)
-        words = []
-        for line in reader:
-            words.append(Word(word=line[0],
-                              e_mean=line[1],
-                              k_mean=line[2],
-                              sentence=line[3]))
-        file.close()
-
-        return words
