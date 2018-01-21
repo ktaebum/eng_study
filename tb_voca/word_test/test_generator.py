@@ -73,16 +73,25 @@ class TestGenerator(object):
         print('Section3: %d' % section3_nums)
         print('\n\n')
 
+        word_list = self.word_list
         if self.section3:
-            section3 = random.sample(list(filter(lambda word: word.sentence != '', self.word_list)), k=section3_nums)
-            if len(section3) < section3_nums:
+            filtered_section3 = list(filter(lambda word: word.sentence != '', word_list))
+            try:
+                section3 = random.sample(filtered_section3,
+                                         k=section3_nums)
+            except ValueError:
+                section3 = filtered_section3
                 section1_nums += section3_nums - len(section3)
-            map(lambda word: self.word_list.remove(word), section3)
+            print(len(word_list))
+            for word in section3:
+                word_list = list(filter(lambda w: not w.equal(word), word_list))
+
+            print(len(word_list))
             section3 = list(map(lambda word: word.remove_word_from_sentence(), section3))
         else:
             section3 = []
-        section1 = self.word_list[:section1_nums]
-        section2 = self.word_list[section1_nums:section1_nums + section2_nums]
+        section1 = word_list[:section1_nums]
+        section2 = word_list[section1_nums:section1_nums + section2_nums]
 
         self.answer_doc = Document()
         self.test_doc = Document()
@@ -151,6 +160,7 @@ class TestGenerator(object):
     def make_section2(self, section2):
         if len(section2) == 0:
             return
+        self.test_doc.add_page_break()
         answer = self.answer_doc.add_paragraph()
         test = self.test_doc.add_paragraph()
         answer.add_run('Answer for section 2').bold = True
@@ -179,6 +189,8 @@ class TestGenerator(object):
     def make_section3(self, section3):
         if len(section3) == 0:
             return
+
+        self.test_doc.add_page_break()
         answer = self.answer_doc.add_paragraph()
         test = self.test_doc.add_paragraph()
         answer.add_run('Answer for section 3').bold = True
@@ -192,21 +204,50 @@ class TestGenerator(object):
             self.test_doc.add_paragraph('%d) %s' % (self.question_number, word.sentence))
             answer_choice = random.choice(choices)
             choice = self.test_doc.add_paragraph('')
+            others = random.sample(list(filter(lambda w: not w.equal(word), section3)), k=3)
+            chosen = [word]
+            print()
             for c in choices:
                 if c == answer_choice:
                     choice.add_run('(%s) %s\t' % (c, word.word))
                     self.answer_doc.add_paragraph('%d) (%s)-%s' % (self.question_number, c, word.word))
                     word.choice_appear += 1
+                    word.appeared = True
                 else:
-                    other = random.choice(section3)
-                    while other.choice_appear == 4 or other == word:
-                        other = random.choice(section3)
+                    # other = random.choice(section3)
+                    # while other.choice_appear >= 4 or other.equal(word):
+                    #    other = random.choice(section3)
+                    candidate = list(filter(lambda w: TestGenerator._filter(w, chosen), section3))
+
+                    other = random.choice(candidate)
+
+                    # other = random.choice(
+                    #    list(filter(lambda w: not TestGenerator._find(w, chosen) and w.choice_appear < 4, section3)))
                     choice.add_run('(%s) %s\t' % (c, other.word))
                     other.choice_appear += 1
-
+                    chosen.append(other)
+            print('word=', word)
+            for cc in chosen:
+                print(cc.word, ', ', end='')
+            print()
+            for w in section3:
+                print(w.word, w.choice_appear, ', ', end='')
+            print()
             self.question_number += 1
 
         return
+
+    @staticmethod
+    def _filter(word, chosen):
+        return word.choice_appear < 4 and not TestGenerator._find(word, chosen)
+
+    @staticmethod
+    def _find(word, word_list):
+        for w in word_list:
+            if word.equal(w):
+                return True
+
+        return False
 
     @staticmethod
     def read_words(filename):
