@@ -41,9 +41,9 @@ class TestGenerator(object):
 
     def generate_tests(self):
         """
-        section1:  Write meaning for given word (default 50%)
-        section2:  Match word for given meaning table set (default 30%)
-        section3:  Match word for given sentence (default 20%)
+        section1:  Write meaning for given word
+        section2:  Match word for given meaning table set
+        section3:  Match word for given sentence
         """
 
         # Test Preface
@@ -75,32 +75,7 @@ class TestGenerator(object):
         print('=====================')
         print('\n\n')
 
-        word_list = self.word_list
-        if self.section3:
-            filtered_section3 = list(filter(lambda w: w.sentence != '', word_list))
-            try:
-                section3 = random.sample(filtered_section3,
-                                         k=section3_nums)
-            except ValueError:
-                # Catch when section3_nums is greater than length of filtered_section3
-                warnings.warn(
-                    'There are only %d words which have example! Make section 3 with these %d words, not %d words'
-                    % (len(filtered_section3), section3_nums, len(filtered_section3)),
-                    RuntimeWarning
-                )
-                section3 = filtered_section3
-                section1_nums += section3_nums - len(section3)
-            for word in section3:
-                # Remove section3 words from original word list
-                word_list = list(filter(lambda w: not w.equal(word), word_list))
-
-            # Replace word to ______
-            section3 = list(map(lambda w: w.remove_word_from_sentence(), section3))
-        else:
-            section3 = []
-
-        section1 = word_list[:section1_nums]
-        section2 = word_list[section1_nums:section1_nums + section2_nums]
+        (section1, section2, section3) = self.split_sections(section1_nums, section2_nums, section3_nums)
 
         self.answer_doc = Document()
         self.test_doc = Document()
@@ -116,8 +91,8 @@ class TestGenerator(object):
             'bottom': Inches(0.5)
         }
 
-        self.set_basic_document(font_dict=font_dict,
-                                margin_dict=margin_dict)
+        self.set_basic_document_setting(font_dict=font_dict,
+                                        margin_dict=margin_dict)
 
         self.make_section1(section1)
         self.make_section2(section2)
@@ -128,7 +103,7 @@ class TestGenerator(object):
 
         return
 
-    def set_basic_document(self, font_dict, margin_dict):
+    def set_basic_document_setting(self, font_dict, margin_dict):
         font = font_dict.setdefault('font', 'Times New Roman')
         answer_doc_font_size = font_dict.setdefault('answer_doc_font_size', 9)
         test_doc_font_size = font_dict.setdefault('test_doc_font_size', 10)
@@ -168,7 +143,7 @@ class TestGenerator(object):
     def make_section1(self, section1):
         if len(section1) == 0:
             return
-        
+
         answer = self.answer_doc.add_paragraph()
         test = self.test_doc.add_paragraph()
         answer.add_run('Answer for section 1').bold = True
@@ -238,19 +213,14 @@ class TestGenerator(object):
             answer_choice = random.choice(choices)
             choice = self.test_doc.add_paragraph('')
             chosen = [word]
-            print()
             for c in choices:
                 if c == answer_choice:
                     choice.add_run('(%s) %s\t' % (c, word.word))
                     self.answer_doc.add_paragraph('%d) (%s)-%s' % (self.question_number, c, word.word))
                     word.choice_appear += 1
-                    word.appeared = True
                 else:
-                    # other = random.choice(section3)
-                    # while other.choice_appear >= 4 or other.equal(word):
-                    #    other = random.choice(section3)
                     candidate = list(
-                        filter(lambda w: w.choices_appear < 4 and not TestGenerator._find(word, chosen), section3))
+                        filter(lambda w: w.choice_appear < 4 and not TestGenerator._find(w, chosen), section3))
                     other = random.choice(candidate)
                     # other = random.choice(
                     #    list(filter(lambda w: not TestGenerator._find(w, chosen) and w.choice_appear < 4, section3)))
@@ -261,10 +231,46 @@ class TestGenerator(object):
 
         return
 
+    def split_sections(self, section1_nums, section2_nums, section3_nums):
+        """
+        split each sections
+        :param section1_nums: # of questions for section1
+        :param section2_nums: # of questions for section2
+        :param section3_nums: # of questions for section3
+        :return: section1, section2, section3 words in list
+        """
+        word_list = self.word_list.copy()
+        if self.section3:
+            filtered_section3 = list(filter(lambda w: w.sentence != '', word_list))
+            try:
+                section3 = random.sample(filtered_section3,
+                                         k=section3_nums)
+            except ValueError:
+                # Catch when section3_nums is greater than length of filtered_section3
+                warnings.warn(
+                    'There are only %d words which have example! Make section 3 with these %d words, not %d words'
+                    % (len(filtered_section3), section3_nums, len(filtered_section3)),
+                    RuntimeWarning
+                )
+                section3 = filtered_section3
+                section1_nums += section3_nums - len(section3)
+            for word in section3:
+                # Remove section3 words from original word list
+                word_list.remove(word)
+                # word_list = list(filter(lambda w: not w.equal(word), word_list))
+            # Replace word to ______
+            section3 = list(map(lambda w: w.remove_word_from_sentence(), section3))
+        else:
+            section3 = []
+
+        section1 = word_list[:section1_nums]
+        section2 = word_list[section1_nums:section1_nums + section2_nums]
+        return section1, section2, section3
+
     @staticmethod
     def _find(word, word_list):
         for w in word_list:
-            if word.equal(w):
+            if word == w:
                 return True
 
         return False
