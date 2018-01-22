@@ -30,9 +30,6 @@ class Word(object):
         word.choice_appear = self.choice_appear
         return word
 
-    def set_index(self, index):
-        self.index = index
-
     def remove_word_from_sentence(self):
         # For preventing some defensive programming issue, make new Word instance
         return Word(word=self.word,

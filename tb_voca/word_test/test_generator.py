@@ -8,7 +8,7 @@ from docx.shared import Pt
 from docx.shared import Inches
 from datetime import datetime
 
-from ..word_io import print_file_list, read_csv
+from ..word_io import print_and_get_file_list, read_csv
 
 
 class TestGenerator(object):
@@ -20,7 +20,7 @@ class TestGenerator(object):
         :param section3: enable section3
                         Section3 is multiple choice question for given example
         """
-        word_files = print_file_list(path)
+        word_files = print_and_get_file_list(path)
         self.word_list = []
         number = input('File Numbers: ')
         number = list(map(lambda nu: int(nu), number.split(' ')))
@@ -125,6 +125,14 @@ class TestGenerator(object):
         return
 
     def set_basic_document_setting(self, font_dict, margin_dict):
+        """
+        Set basic document template setting (current version supports only font, margin)
+        :param font_dict: font param
+        :param margin_dict: margin param
+        :return:
+        """
+
+        # read data
         font = font_dict.setdefault('font', 'Times New Roman')
         answer_doc_font_size = font_dict.setdefault('answer_doc_font_size', 9)
         test_doc_font_size = font_dict.setdefault('test_doc_font_size', 10)
@@ -132,6 +140,7 @@ class TestGenerator(object):
         top_margin = margin_dict.setdefault('top', Inches(0.5))
         bottom_margin = margin_dict.setdefault('bottom', Inches(0.5))
 
+        # margin setting
         answer_sections = self.answer_doc.sections
         test_sections = self.test_doc.sections
         for answer_section, test_section in zip(answer_sections, test_sections):
@@ -162,7 +171,12 @@ class TestGenerator(object):
             text='\t\t\t\t\t\t\t\t\t\t%d-%d-%d' % (test_day.year, test_day.month, test_day.day + 1))
 
     def make_section1(self, section1):
+        """
+        :param section1: word list for section1
+        :return:
+        """
         if len(section1) == 0:
+            # if empty, just terminate
             return
 
         answer = self.answer_doc.add_paragraph()
@@ -270,11 +284,11 @@ class TestGenerator(object):
                     RuntimeWarning
                 )
                 section3 = filtered_section3
-                section1_nums += section3_nums - len(section3)
-            for word in section3:
-                # Remove section3 words from original word list
-                word_list.remove(word)
-                # word_list = list(filter(lambda w: not w.equal(word), word_list))
+                section1_nums += section3_nums - len(section3)  # append to section1
+
+            # Remove section3 words from original word list
+            word_list = list(filter(lambda w: w not in section3, word_list))
+
             # Replace word to ______
             section3 = list(map(lambda w: w.remove_word_from_sentence(), section3))
         else:

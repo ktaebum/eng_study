@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from bs4 import BeautifulSoup
-from ..word_io import print_file_list, read_csv
+from ..word_io import print_and_get_file_list, read_csv
 import requests
 import re
 import csv
@@ -30,7 +30,7 @@ class WordFinder(object):
         """
         if not all_files:
             print('Select Target File Number to Find')
-            word_files = print_file_list(path, verbose=True)
+            word_files = print_and_get_file_list(path, verbose=True)
             number = int(input('Number: ')) - 1
             if number >= len(word_files):
                 raise FileNotFoundError('Non-Existing File!')
@@ -40,7 +40,7 @@ class WordFinder(object):
             self.word_list = read_csv(self.filename)
         else:
             # If all files is True, find all csv file in target path
-            word_files = print_file_list(path, verbose=False)
+            word_files = print_and_get_file_list(path, verbose=False)
             for file in word_files:
                 self.filename = file
                 self.word_list = read_csv(self.filename)

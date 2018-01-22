@@ -7,7 +7,13 @@ from os.path import join
 from .word import Word
 
 
-def print_file_list(path, verbose=True):
+def print_and_get_file_list(path, verbose=True):
+    """
+    Print all files in target path
+    :param path: target path
+    :param verbose: if true, print file list
+    :return: file list
+    """
     file_list = list()
 
     idx = 1
@@ -27,6 +33,11 @@ def print_file_list(path, verbose=True):
 
 
 def read_csv(file):
+    """
+    Read word file csv, and store it into a list
+    :param file: target word file
+    :return: word list
+    """
     file = open(file, 'r', encoding='utf-8')
     word_list = []
     reader = csv.reader(file)
