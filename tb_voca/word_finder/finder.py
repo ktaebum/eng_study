@@ -92,9 +92,9 @@ class WordFinder(object):
         """
         req = requests.get(WordFinder.eng_url + word)
         soup = BeautifulSoup(req.text, 'html.parser')
-        eng_results = soup.find('ul', {'class': 'semb'}).find_all('div', {'class': 'trg'})
 
         try:
+            eng_results = soup.find('ul', {'class': 'semb'}).find_all('div', {'class': 'trg'})
             eng_meanings = list(map(lambda list_element: tag_parser(
                 str(list_element.find('span', {'class': 'ind'}))), eng_results))
             eng_meanings = list(filter(lambda mean: len(mean) > 0, eng_meanings))

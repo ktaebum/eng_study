@@ -30,9 +30,17 @@ class Word(object):
         word.choice_appear = self.choice_appear
         return word
 
+    def __hash__(self):
+        return hash(self.word)
+
     def remove_word_from_sentence(self):
         # For preventing some defensive programming issue, make new Word instance
         return Word(word=self.word,
                     e_mean=self.e_mean,
                     k_mean=self.k_mean,
                     sentence=self.sentence.replace(self.word, '______'))
+
+    def set_choice_appear(self, c):
+        word = self.__copy__()
+        word.choice_appear = c
+        return word

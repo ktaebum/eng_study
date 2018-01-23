@@ -25,11 +25,10 @@ class TestGenerator(object):
         number = input('File Numbers: ')
         number = list(map(lambda nu: int(nu), number.split(' ')))
         for n in number:
-            try:
-                filename = word_files[n - 1]
-                self.word_list += read_csv(filename)
-            except IndexError:
-                print('Error: Non Existing File Number Included')
+            if n - 1 > len(word_files):
+                raise FileNotFoundError('Non Existing File Number Included!')
+            filename = word_files[n - 1]
+            self.word_list += read_csv(filename)
 
         random.shuffle(self.word_list)
 
@@ -243,6 +242,7 @@ class TestGenerator(object):
         appropriate.italic = True
         test.add_run(' word for given sentence from following choices').bold = True
         choices = ['a', 'b', 'c', 'd']
+
         for word in section3:
             self.test_doc.add_paragraph('%d) %s' % (self.question_number, word.sentence))
             answer_choice = random.choice(choices)
@@ -259,7 +259,6 @@ class TestGenerator(object):
                     choice.add_run('(%s) %s\t' % (c, other.word))
                     other.choice_appear += 1
             self.question_number += 1
-
         return
 
     def split_sections(self, section1_nums, section2_nums, section3_nums):
